@@ -1,6 +1,8 @@
 package mygame;
 
 import com.jme3.app.SimpleApplication;
+import com.jme3.input.KeyInput;
+import com.jme3.input.controls.*;
 import com.jme3.material.Material;
 import com.jme3.material.RenderState.BlendMode;
 import com.jme3.math.Vector3f;
@@ -13,16 +15,14 @@ import com.jme3.ui.Picture;
 import mygame.blocks.*;
 import java.util.ArrayList;
 
-/**
- * This is the Main Class of your Game. You should only do initialization here.
- * Move your Logic into AppStates or Controls
- * @author normenhansen
- */
+
 public class Main extends SimpleApplication {
     private ArrayList<Node> node_blocks = new ArrayList<Node>();
     private ArrayList<Block> blocks = new ArrayList<Block>();
+    private Node paddle = new Node();
     private Ball ball;
     private Spatial S_ball;
+    private final float SCALE = 0.5f;
 
     public static void main(String[] args) {
         Main app = new Main();
@@ -30,8 +30,11 @@ public class Main extends SimpleApplication {
         settings.setRenderer(AppSettings.LWJGL_OPENGL2);
         settings.setWidth(800);
         settings.setHeight(600);
-        app.setShowSettings(false);
+        settings.setTitle("Oliver Legg - COMP222 Arkanoid A1 - 201244658");
+        settings.setSamples(8);
+        settings.setResizable(false);
         app.setSettings(settings);
+        app.setShowSettings(false);
         app.start();
     }
 
@@ -41,7 +44,6 @@ public class Main extends SimpleApplication {
         cam.setParallelProjection(true);
         cam.setLocation(new Vector3f(0,0,0.5f));
         getFlyByCamera().setEnabled(false);
-        final float SCALE = 0.5f;
         
         // Adding the background to the game
         Spatial background = getSpatial("background", 1);
@@ -50,9 +52,8 @@ public class Main extends SimpleApplication {
         
         // Adding the ball to the game
         ball = new Ball(settings.getWidth()/2, 100);
-        ball.setRadius(getHeight(ball.getName(), SCALE)/40f);
+        ball.setRadius(getWidth("ball",SCALE));
         S_ball = getSpatial(ball.getName(), 0.2f);
-        S_ball.move(ball.getX(), ball.getY(), 0);
         guiNode.attachChild(S_ball);
         
         // Setup the bricks
@@ -87,18 +88,51 @@ public class Main extends SimpleApplication {
             guiNode.attachChild(node_blocks.get(i));
         }
         
+        paddle = (Node) getSpatial("paddle", SCALE);
+        paddle.setUserData("alive", true);
+        guiNode.attachChild(paddle);
+        
     }
     
     @Override
     public void simpleUpdate(float tpf) {
         ball.update(tpf);
-        S_ball.setLocalTranslation(ball.getX(), ball.getY(), 0);
-        
+        S_ball.setLocalTranslation(ball.getX()+ball.getRadius(), ball.getY()+ball.getRadius(), 0);
         // Calculate detection results
         for (int i=0; i < blocks.size(); i++) {
-            if (checkCollision(ball, blocks.get(i))) {
+            if ( Ball.checkCollisionBlock(ball, blocks.get(i))) {
                 ball.bounce();
+                node_blocks.get(i).removeFromParent();
+                node_blocks.remove(i);
+                blocks.remove(i);
             }
+        }
+        
+        // redefining to save time
+        float paddle_w = getWidth("paddle", SCALE);
+        float paddle_h = getHeight("paddle", SCALE);
+        float paddle_x = inputManager.getCursorPosition().x;
+        paddle_x = paddle_x + (getWidth("paddle", SCALE)/2);
+        float paddle_y = 50;
+        
+        // Movement and collision for paddle and wall
+        int screenWidth = settings.getWidth();
+        int screenHeight = settings.getHeight();
+        
+        float temp = Math.max(paddle_x, paddle_w);
+        paddle_x = Math.min(temp, screenWidth);
+        paddle.setLocalTranslation(paddle_x, paddle_y, 0);
+        
+        if (ball.getX() >= screenWidth || (ball.getX()-(ball.getRadius()*2) <= 0))
+        {
+            ball.speed_x = -ball.speed_x;
+        }
+        
+        // Collision for paddle and ball
+        if ( Ball.checkCollisionPaddle(ball, paddle_x, paddle_y, paddle_w, paddle_h) )
+        {
+            System.out.println(paddle_x +" - "+ paddle_y + " - " + paddle_w + " - " + paddle_h);
+            ball.bounce();
         }
     }
 
@@ -122,13 +156,12 @@ public class Main extends SimpleApplication {
         return tex.getImage().getHeight() * scale;
     }
     
-    // Circle and block euclideans collision in (lecture 16).
-    private boolean checkCollision(Ball ball, Block block ) 
+    private void initKeys()
     {
-        float deltaX = ball.getX() - Math.max(block.getX(), Math.min(ball.getX(), block.getX() + Block.getWidth()));
-        float deltaY = ball.getY() - Math.max(block.getY(), Math.min(ball.getY(), block.getY() + Block.getHeight()));
-        return (deltaX * deltaX + deltaY * deltaY) < (ball.getRadius() * ball.getRadius());
+        inputManager.addMapping("teleport", new KeyTrigger(KeyInput.KEY_SPACE));
+        inputManager.addListener(actionListener, "teleport");
     }
+   
     
     // Generates a spatial type with an image. This can be casted to a Node type.
     private Spatial getSpatial(String name, float scale) {
@@ -159,4 +192,16 @@ public class Main extends SimpleApplication {
         node.attachChild(pic);
         return node;
     }
+    
+    private final ActionListener actionListener = new ActionListener() {
+        
+        @Override
+        public void onAction(String name, boolean keyPressed, float tpf) {
+            if (name.equals("teleport")) {
+                ball.x = 800;
+                ball.y = 600;
+            }
+        }
+        
+    };
 }

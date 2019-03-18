@@ -9,7 +9,7 @@ package mygame.blocks;
  *
  * @author sgolegg
  */
-public abstract class Block {
+public abstract class Block{
     protected String name;
     protected int health;
     protected int x;
