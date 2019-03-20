@@ -17,12 +17,12 @@ import java.util.ArrayList;
 
 
 public class Main extends SimpleApplication {
-    private ArrayList<Node> node_blocks = new ArrayList<Node>();
-    private ArrayList<Block> blocks = new ArrayList<Block>();
+    private static ArrayList<Node> node_blocks = new ArrayList<Node>();
+    private static ArrayList<Block> blocks = new ArrayList<Block>();
     private Node paddle = new Node();
-    private Ball ball;
+    private static Ball ball;
     private Spatial S_ball;
-    private final float SCALE = 0.5f;
+    public static boolean hit_paddle = false;
 
     public static void main(String[] args) {
         Main app = new Main();
@@ -35,6 +35,8 @@ public class Main extends SimpleApplication {
         settings.setResizable(false);
         app.setSettings(settings);
         app.setShowSettings(false);
+        app.setDisplayFps(false);
+        app.setDisplayStatView(false);
         app.start();
     }
 
@@ -51,17 +53,15 @@ public class Main extends SimpleApplication {
         guiNode.attachChild(background);
         
         // Adding the ball to the game
-        ball = new Ball(settings.getWidth()/2, 100);
-        ball.setRadius(getWidth("ball",SCALE));
-        S_ball = getSpatial(ball.getName(), 0.2f);
-        guiNode.attachChild(S_ball);
+        ball = new Ball(settings.getWidth()/2, 100, (float) getWidth("ball", 1)/2f);
+        S_ball = getSpatial(ball.getName(), 1f);
         
         // Setup the bricks
         final int margin_x_between = 68;
-        final int margin_x_left = 125;
+        final int margin_x_left = 100;
         final int margin_y = settings.getHeight();
         int increment_y = 25;
-        Block.setDimensions(getWidth("brick1", SCALE), getHeight("brick1", SCALE));        
+        Block.setDimensions(getWidth("brick1", 1), getHeight("brick1", 1));        
                         
         // Adding the bricks to the game
         for (int i = 0; i < 10; i++)            //Brick5
@@ -82,57 +82,59 @@ public class Main extends SimpleApplication {
         // Adding the bricks to the game
         for (int i = 0; i < blocks.size(); i++)
         {
-            node_blocks.add((Node) getSpatial(blocks.get(i).getName(), SCALE));
+            node_blocks.add((Node) getSpatial(blocks.get(i).getName(), 1));
             node_blocks.get(i).setUserData("alive",true);
-            node_blocks.get(i).setLocalTranslation(blocks.get(i).getX(), blocks.get(i).getY(), 0);
+            node_blocks.get(i).setLocalTranslation(blocks.get(i).getX(), blocks.get(i).getY(), 0f);
             guiNode.attachChild(node_blocks.get(i));
         }
         
-        paddle = (Node) getSpatial("paddle", SCALE);
+        paddle = (Node) getSpatial("paddle", 1);
         paddle.setUserData("alive", true);
         guiNode.attachChild(paddle);
+        guiNode.attachChild(S_ball);
+        initKeys();
         
     }
     
     @Override
     public void simpleUpdate(float tpf) {
-        ball.update(tpf);
-        S_ball.setLocalTranslation(ball.getX()+ball.getRadius(), ball.getY()+ball.getRadius(), 0);
+        ball.update(tpf, settings.getWidth(), settings.getHeight());
+        S_ball.setLocalTranslation(ball.getX(), ball.getY(), 0);
+        
         // Calculate detection results
         for (int i=0; i < blocks.size(); i++) {
-            if ( Ball.checkCollisionBlock(ball, blocks.get(i))) {
+            float block_x = blocks.get(i).getX();
+            float block_y = blocks.get(i).getY();
+            float block_w = Block.getWidth()+12;
+            float block_h = Block.getHeight()+12;
+            if ( Ball.Circle_Rect_Intersect(ball.getX(), ball.getY(), ball.getRadius(), block_x+(block_w/2), block_y+(block_h/2), block_w, block_h)) {
                 ball.bounce();
+                ball.increasePoints(blocks.get(i).getName());
                 node_blocks.get(i).removeFromParent();
                 node_blocks.remove(i);
                 blocks.remove(i);
+                hit_paddle = false;
             }
         }
         
         // redefining to save time
-        float paddle_w = getWidth("paddle", SCALE);
-        float paddle_h = getHeight("paddle", SCALE);
-        float paddle_x = inputManager.getCursorPosition().x;
-        paddle_x = paddle_x + (getWidth("paddle", SCALE)/2);
+        float paddle_w = getWidth("paddle", 1)+12;
+        float paddle_h = getHeight("paddle", 1)+12;
+        float mouse_x = inputManager.getCursorPosition().x;
+        //float paddle_x = mouse_x + (getWidth("paddle", 1)/2);
+        float paddle_x = mouse_x;
         float paddle_y = 50;
         
         // Movement and collision for paddle and wall
-        int screenWidth = settings.getWidth();
-        int screenHeight = settings.getHeight();
-        
-        float temp = Math.max(paddle_x, paddle_w);
-        paddle_x = Math.min(temp, screenWidth);
+        float temp = Math.max(paddle_x, (paddle_w-12)/2);
+        paddle_x = Math.min(temp, settings.getWidth()-((paddle_w-12)/2));
         paddle.setLocalTranslation(paddle_x, paddle_y, 0);
         
-        if (ball.getX() >= screenWidth || (ball.getX()-(ball.getRadius()*2) <= 0))
-        {
-            ball.speed_x = -ball.speed_x;
-        }
-        
         // Collision for paddle and ball
-        if ( Ball.checkCollisionPaddle(ball, paddle_x, paddle_y, paddle_w, paddle_h) )
+        if ( Ball.Circle_Rect_Intersect(ball.getX(), ball.getY(), ball.getRadius(), paddle_x+(paddle_w/2), paddle_y+(paddle_h/2), paddle_w, paddle_h) && !hit_paddle )
         {
-            System.out.println(paddle_x +" - "+ paddle_y + " - " + paddle_w + " - " + paddle_h);
             ball.bounce();
+            hit_paddle = true;
         }
     }
 
@@ -183,11 +185,7 @@ public class Main extends SimpleApplication {
         Material picMat = new Material(assetManager, "Common/MatDefs/Gui/Gui.j3md");
         picMat.getAdditionalRenderState().setBlendMode(BlendMode.AlphaAdditive);
         node.setMaterial(picMat);
- 
-        // set the radius of the spatial
-        // (using width only as a simple approximation)
-        node.setUserData("radius", width/2);
- 
+        
         // attach the picture to the node and return it
         node.attachChild(pic);
         return node;
@@ -197,11 +195,13 @@ public class Main extends SimpleApplication {
         
         @Override
         public void onAction(String name, boolean keyPressed, float tpf) {
-            if (name.equals("teleport")) {
-                ball.x = 800;
-                ball.y = 600;
+            if (name.equals("teleport")&& keyPressed) {
+                //ball.x = inputManager.getCursorPosition().x;
+                //ball.y = inputManager.getCursorPosition().y;
+                ball.speed_x = 0;
+                ball.speed_y = 0;
+                node_blocks.get(0).setLocalTranslation(inputManager.getCursorPosition().x - (Block.getWidth()/2), inputManager.getCursorPosition().y-(Block.getHeight()/2), 0);
             }
         }
-        
     };
 }
