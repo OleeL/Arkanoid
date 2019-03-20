@@ -11,7 +11,7 @@ package mygame.blocks;
  */
 public class Brick4 extends Block {
     
-    public Brick4(int x, int y)
+    public Brick4(float x, float y)
     {
         // x, y, health
         super(x, y, 4, "brick4");

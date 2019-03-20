@@ -12,12 +12,12 @@ package mygame.blocks;
 public abstract class Block{
     protected String name;
     protected int health;
-    protected int x;
-    protected int y;
+    protected float x;
+    protected float y;
     public static float width;
     public static float height;
     
-    public Block(int x, int y, int health, String name)
+    public Block(float x, float y, int health, String name)
     {
         this.name = name;
         this.x = x;
@@ -46,12 +46,12 @@ public abstract class Block{
         return name;
     }
     
-    public int getX()
+    public float getX()
     {
         return x;
     }
     
-    public int getY()
+    public float getY()
     {
         return y;
     }
