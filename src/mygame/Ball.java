@@ -5,46 +5,44 @@
  */
 package mygame;
 
+import com.jme3.scene.Spatial;
+
 /**
  *
  * @author sgolegg
  */
   
 public class Ball {
+    private static final int PLAYING = 0;
+    private static final int RESPAWNING = 1;
+    private static final int PAUSED = 2;
+    private static final int STARTING = 3;
+    private static final float TIMER_DURATION = 2f;
+    private static final float DEFAULTSPEED = 200f;
+    private static final float SPEED_INCREMENTOR = 17;
+    
     private float radius;
-    private final static float DEFAULTSPEED = 200f;
     private float speed = DEFAULTSPEED;
-    private float speed_incrementor = 14;
-    public float speed_x = DEFAULTSPEED;
-    public float speed_y = DEFAULTSPEED;
-    private float starting_x;
-    private float starting_y;
-    private int points;
-    public float x;
-    public float y;
+    private float speed_x = DEFAULTSPEED;
+    private float speed_y = DEFAULTSPEED;
+    private float x;
+    private float y;
     
     private int state = 1;
     private int previous_state;
-    private final int PLAYING = 0;
-    private final int RESPAWNING = 1;
-    private final int PAUSED = 2;
-    private final int STARTING = 3;
+    private int points;
     
-    private final float TIMER_DURATION = 2f;
     private float timer = TIMER_DURATION;
-    private int PAUSE_SPEED = 0;
     private float resume_speed_x;
     private float resume_speed_y;
-
     private String name;
+    public Spatial spatial;
     
     public Ball(float x, float y, float r)
     {
         this.name = "ball";
         this.x = x;
         this.y = y;
-        this.starting_x = x;
-        this.starting_y = y;
         this.radius = r;
     }
         
@@ -63,6 +61,16 @@ public class Ball {
         return y;
     }
     
+    public void setSpeedX(float spd)
+    {
+        speed_x = spd;
+    }
+    
+    public void setSpeedY(float spd)
+    {
+        speed_y = spd;
+    }
+    
     public float getSpeedX()
     {
         return speed_x;
@@ -71,6 +79,11 @@ public class Ball {
     public float getSpeedY()
     {
         return speed_y;
+    }
+    
+    public float getSpeed()
+    {
+        return speed;
     }
     
     public int getState()
@@ -148,25 +161,21 @@ public class Ball {
     public void increaseSpeed()
     {
         if (speed_x > 0)
-            speed_x += speed_incrementor;
+            speed_x += SPEED_INCREMENTOR;
         else
-            speed_x -= speed_incrementor;
+            speed_x -= SPEED_INCREMENTOR;
         if (speed_y > 0)
-            speed_y += speed_incrementor;
+            speed_y += SPEED_INCREMENTOR;
         else
-            speed_y -= speed_incrementor;
+            speed_y -= SPEED_INCREMENTOR;
+        speed += SPEED_INCREMENTOR;
     }
     
     public void direction(float px)
     {
         // Distance formulae
-        float d = (x - px)*5;
-        if ( speed_x > 0 )
-            d = Math.min(d, Math.abs(speed_y+DEFAULTSPEED));
-        else
-            d = Math.max(d, -Math.abs(speed_y-DEFAULTSPEED));
-        System.out.println(d +" = "+DEFAULTSPEED+" + " + speed_y);
-        speed_x = speed_x + d;
+        float d = (x - px) / 60;
+        speed_x = d * speed;
     }
     
     public void resetSpeed()
@@ -176,37 +185,40 @@ public class Ball {
         speed_y = DEFAULTSPEED;
     }
     
-    public void update(float dt, int w, int h)
+    public void update(
+            float dt, 
+            int screenWidth, 
+            int screenHeight, 
+            float wallWidth, 
+            float wallHeight,
+            float mouse_x,
+            float mouse_y)
     {
         switch (state){
             case PLAYING :
                 x = (x + (speed_x * dt));
                 y = (y + (speed_y * dt));
 
-                if (x+radius >= w){
+                if (x+radius >= screenWidth-wallWidth){
                     speed_x = -Math.abs(speed_x);
-                    Main.hit_paddle = false;
                 }
-                else if (x-radius <= 0){
+                else if (x-radius <= wallWidth){
                    speed_x = Math.abs(speed_x);
-                   Main.hit_paddle = false;
                 }
-                if (y+radius >= h){
+                if (y+radius >= screenHeight - wallHeight){
                     speed_y = -Math.abs(speed_y);
-                    Main.hit_paddle = false;
+                    Main.paddle.hit = false;
                 }
                 else if (y <= 0-(radius*2))
                 {
                     state = RESPAWNING;
                     resetSpeed();
-                    Main.hit_paddle = false;
+                    Main.paddle.hit = false;
                 }
                 break;
             case RESPAWNING :
-                x = Main.paddle.getLocalTranslation().x;
-                y = Main.paddle.getLocalTranslation().y + 
-                        ((float) Main.paddle.getUserData("height") / 2f) +
-                        radius;
+                x = Main.paddle.x;
+                y = Main.paddle.y +(Main.paddle.h/ 2) + radius - 5;
                 speed_x = 0;
                 
                 timer = timer - dt;

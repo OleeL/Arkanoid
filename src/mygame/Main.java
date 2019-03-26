@@ -1,5 +1,6 @@
 package mygame;
 
+import java.util.ArrayList;
 import com.jme3.app.SimpleApplication;
 import com.jme3.font.BitmapFont;
 import com.jme3.font.BitmapText;
@@ -15,21 +16,24 @@ import com.jme3.system.AppSettings;
 import com.jme3.texture.Texture2D;
 import com.jme3.ui.Picture;
 import mygame.blocks.*;
-import java.util.ArrayList;
+import mygame.blockBalls.*;
 
 /**
  *
  * @author sgolegg
  */
 public class Main extends SimpleApplication {
-    private static ArrayList<Node> node_blocks = new ArrayList<Node>();
     private static ArrayList<Block> blocks = new ArrayList<Block>();
-    public static Node paddle;
+    private static ArrayList<BallGreen> greenBalls = new ArrayList<BallGreen>();
+    private static Wall[] walls = new Wall[3];
+    public static Paddle paddle;
     private static Ball ball;
-    public static boolean hit_paddle = false;
     public static boolean paused = false;
     public static Main app;
-    private Spatial S_ball;
+    public static final int screenWidth = 800;
+    public static final int screenHeight = 600;
+    public int score = 0;
+    
     //public BitmapFont myFont = assetManager.loadFont("Interface/pixelart.ttf");
     //public BitmapText win = new BitmapText(myFont, false);
     
@@ -37,8 +41,8 @@ public class Main extends SimpleApplication {
         app = new Main();
         AppSettings settings = new AppSettings(true);
         settings.setRenderer(AppSettings.LWJGL_OPENGL2);
-        settings.setWidth(800);
-        settings.setHeight(600);
+        settings.setWidth(screenWidth);
+        settings.setHeight(screenHeight);
         settings.setTitle("Oliver Legg - COMP222 Arkanoid A1 - 201244658");
         settings.setSamples(8);
         settings.setResizable(false);
@@ -72,15 +76,37 @@ public class Main extends SimpleApplication {
                 getHeight("background", 1.0f)/2, 0);
         guiNode.attachChild(background);
         
-        // Adding the ball to the game
-        ball = new Ball(settings.getWidth()/2, 100, 
-                getWidth("ball", 1)/2f);
-        S_ball = getSpatial(ball.getName(), 1f);
+        // Adding the green ball to the game
+        ball = new Ball(screenWidth/2, 100, getWidth("ball", 1)/2f);
+        ball.spatial = getSpatial(ball.getName(), 1f);
+        
+        // Adding the walls to the game
+        walls[0] = new Wall(
+                33.5f, 
+                300f, 
+                "wall_left", 
+                (Node) getSpatial("wall_left", 1));
+        walls[1] = new Wall(
+                766.5f, 
+                300f, 
+                "wall_right", 
+                (Node) getSpatial("wall_right", 1));
+        walls[2] = new Wall(
+                400f, 
+                566.5f, 
+                "wall_top", 
+                (Node) getSpatial("wall_top", 1));
+        
+        for (Wall wall : walls) {
+            wall.setDimensions(getWidth(wall.getName(), 1), getHeight(wall.getName(), 1));
+            guiNode.attachChild(wall.node);  
+        }
         
         // Setup the bricks
-        final int margin_x_between = 68;
+        final int margin_x_between = 64;
         final int margin_x_left = 100;
-        final int margin_y = settings.getHeight();
+        final int margin_y = settings.getHeight()-100;
+        final int margin_y_between = 25;
         int increment_y = 25;
         Block.setDimensions(getWidth("brick1", 1), getHeight("brick1", 1));        
                         
@@ -88,19 +114,25 @@ public class Main extends SimpleApplication {
         for (int i = 0; i < 10; i++)            //Brick5
             blocks.add(new Brick5(margin_x_left+(i*margin_x_between),
                     margin_y-increment_y));
-        increment_y = increment_y + 50;
+        increment_y = increment_y + margin_y_between;
         for (int i = 0; i < 10; i++)            //Brick4
             blocks.add(new Brick4(margin_x_left+(i*margin_x_between),
                     margin_y-increment_y));
-        increment_y = increment_y + 50;
-        for (int i = 0; i < 10; i++)            //Brick3
+        increment_y = increment_y + margin_y_between;
+        for (int i = 0; i < 3; i++)            //Brick3
             blocks.add(new Brick3(margin_x_left+(i*margin_x_between),
                     margin_y-increment_y));
-        increment_y = increment_y + 50;
+        for (int i = 3; i < 7; i++)            // Red balls
+            greenBalls.add(new BallGreen(margin_x_left+(i*margin_x_between),
+                    margin_y-increment_y, getHeight(BallGreen.getName(),1)/2f));
+        for (int i = 7; i < 10; i++)            //Brick3
+            blocks.add(new Brick3(margin_x_left+(i*margin_x_between),
+                    margin_y-increment_y));
+        increment_y = increment_y + margin_y_between;
         for (int i = 0; i < 10; i++)            //Brick2
             blocks.add(new Brick2(margin_x_left+(i*margin_x_between),
                     margin_y-increment_y));
-        increment_y = increment_y + 50;
+        increment_y = increment_y + margin_y_between;
         for (int i = 0; i < 10; i++)            //Brick1
             blocks.add(new Brick1(margin_x_left+(i*margin_x_between),
                     margin_y-increment_y));
@@ -108,30 +140,46 @@ public class Main extends SimpleApplication {
         // Adding the bricks to the game
         for (int i = 0; i < blocks.size(); i++)
         {
-            node_blocks.add((Node) getSpatial(blocks.get(i).getName(), 1));
-            node_blocks.get(i).setUserData("alive",true);
-            node_blocks.get(i).setLocalTranslation(
+            blocks.get(i).node = (Node) getSpatial(blocks.get(i).getName(), 1);
+            blocks.get(i).node.setLocalTranslation(
                     blocks.get(i).getX(), 
                     blocks.get(i).getY(), 
                     0f);
-            guiNode.attachChild(node_blocks.get(i));
+            guiNode.attachChild(blocks.get(i).node);
         }
-        
-        paddle = (Node) getSpatial("paddle", 1);
-        paddle.setUserData("alive", true);
-        paddle.setUserData("height", getHeight("paddle", 1));
-        guiNode.attachChild(paddle);
-        guiNode.attachChild(S_ball);
-        initKeys();
+        for (int i = 0; i < greenBalls.size(); i++)
+        {
+            greenBalls.get(i).node = (Node) getSpatial(BallGreen.getName(), 1);
+            greenBalls.get(i).node.setLocalTranslation(
+                    greenBalls.get(i).getX(), 
+                    greenBalls.get(i).getY(), 
+                    0);
+            guiNode.attachChild(greenBalls.get(i).node);
+        }
+        paddle = new Paddle(0, 
+                            50, 
+                            getWidth("paddle", 1)+12, 
+                            getHeight("paddle", 1)+12);
+        paddle.node = (Node) getSpatial("paddle", 1);
+        guiNode.attachChild(paddle.node);
+        guiNode.attachChild(ball.spatial);
         
     }
     
     @Override
     public void simpleUpdate(float tpf) {
         
-        ball.update(tpf, settings.getWidth(), settings.getHeight());
-        S_ball.setLocalTranslation(ball.getX(), ball.getY(), 0);
+        ball.update(
+                tpf, 
+                settings.getWidth(), 
+                settings.getHeight(), 
+                walls[0].getWidth(), 
+                walls[2].getHeight(),
+                inputManager.getCursorPosition().x,
+                inputManager.getCursorPosition().y);
         
+        paddle.update(inputManager.getCursorPosition().x, walls[0].getWidth());
+        ball.spatial.setLocalTranslation(ball.getX(), ball.getY(), 0);
         // Calculate detection results
         for (int i=0; i < blocks.size(); i++) {
             float block_x = blocks.get(i).getX();
@@ -147,7 +195,7 @@ public class Main extends SimpleApplication {
                     block_w, 
                     block_h)) {
                 ball.increasePoints(blocks.get(i).getName());
-                hit_paddle = false;
+                paddle.hit = false;
                 if ( !Ball.Circle_Rect_Intersect(
                         ball.getX(), 
                         ball.getY()-(ball.getSpeedY()*tpf), 
@@ -168,40 +216,55 @@ public class Main extends SimpleApplication {
                         block_h)) {
                     ball.bounce_x();
                 }
-                node_blocks.get(i).removeFromParent();
-                node_blocks.remove(i);
+                blocks.get(i).node.removeFromParent();
                 blocks.remove(i);
+                score += 1;
             }
         }
-        
-        // redefining to save time
-        float paddle_w = getWidth("paddle", 1)+12;
-        float paddle_h = getHeight("paddle", 1)+12;
-        float mouse_x = inputManager.getCursorPosition().x;
-        //float paddle_x = mouse_x + (getWidth("paddle", 1)/2);
-        float paddle_x = mouse_x;
-        float paddle_y = 50;
-        
-        // Movement and collision for paddle and wall
-        float temp = Math.max(paddle_x, (paddle_w-12)/2);
-        paddle_x = Math.min(temp, settings.getWidth()-((paddle_w-12)/2));
-        if (!paused)
-            paddle.setLocalTranslation(paddle_x, paddle_y, 0);
+        // Collision between red ball and green ball
+        for (int i = 0; i < greenBalls.size(); i++)
+        {
+            if (greenBalls.get(i).circle_collided(ball.getX(), 
+                    ball.getY(), 
+                    ball.getRadius())
+            && !greenBalls.get(i).isDead())
+            {                    
+                float direction = (float) Math.toDegrees(
+                        Math.atan2(
+                            (ball.getY()-greenBalls.get(i).getY()),
+                            (ball.getX()-greenBalls.get(i).getX())));
+
+                ball.setSpeedX(ball.getSpeed() * (float) Math.cos( 
+                        direction * Math.PI / 180));
+                ball.setSpeedY(ball.getSpeed() * (float) Math.sin( 
+                        direction * Math.PI / 180));
+
+                paddle.hit = false;
+                greenBalls.get(i).node.removeFromParent();
+                greenBalls.get(i).kill();
+                greenBalls.remove(i);
+                score += 500;
+            }
+            if (Math.abs(ball.getSpeedX()) < 0.2f)
+            {
+                ball.setSpeedX(ball.getSpeedX() * 2);
+            }
+        }
         
         // Collision for paddle and ball
         if ( Ball.Circle_Rect_Intersect(
                 ball.getX(), 
                 ball.getY(), 
                 ball.getRadius(), 
-                paddle_x+(paddle_w/2), 
-                paddle_y+(paddle_h/2), 
-                paddle_w, paddle_h) 
-                && !hit_paddle )
+                paddle.x+(paddle.w/2), 
+                paddle.y+(paddle.h/2), 
+                paddle.w, paddle.h) 
+                && !paddle.hit )
         {
             ball.bounce_y();
-            hit_paddle = true;
+            paddle.hit = true;
             ball.increaseSpeed();
-            ball.direction(paddle_x);
+            ball.direction(paddle.x);
         }
     }
 
@@ -227,14 +290,7 @@ public class Main extends SimpleApplication {
         return tex.getImage().getHeight() * scale;
     }
     
-    private void initKeys()
-    {
-        inputManager.addMapping("teleport", new KeyTrigger(KeyInput.KEY_SPACE));
-        inputManager.addListener(actionListener, "teleport");
-    }
-   
-    
-    // Generates a spatial type with an image. This can be casted to a Node type.
+    // makes a spatial type with an image. This can be casted to a Node type.
     private Spatial getSpatial(String name, float scale) {
         Node node = new Node(name);
         
@@ -243,20 +299,19 @@ public class Main extends SimpleApplication {
         Texture2D tex;
         tex = (Texture2D) assetManager.loadTexture("Textures/"+name+".png");
         pic.setTexture(assetManager,tex,true);
- 
         // adjust picture
         float width = tex.getImage().getWidth();
         float height = tex.getImage().getHeight();
         pic.setWidth(width*scale);
         pic.setHeight(height*scale);
         pic.move(-width/2f,-height/2f,0);
- 
+        
         // add a material to the picture
         Material picMat;
         picMat = new Material(assetManager, "Common/MatDefs/Gui/Gui.j3md");
         picMat.getAdditionalRenderState().setBlendMode(BlendMode.AlphaAdditive);
         node.setMaterial(picMat);
-        
+        //System.out.println(picMat.getTextureParam("Textures/"+name+".png"));
         // attach the picture to the node and return it
         node.attachChild(pic);
         return node;
@@ -269,10 +324,8 @@ public class Main extends SimpleApplication {
             if (name.equals("Pause") && keyPressed)
             {
                 ball.pause();
-                if (!paused)
-                    paused = true;
-                else 
-                    paused = false;
+                if (!paused) paused = true;
+                else paused = false;
             }
         }
     };

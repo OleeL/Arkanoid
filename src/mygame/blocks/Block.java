@@ -5,6 +5,8 @@
  */
 package mygame.blocks;
 
+import com.jme3.scene.Node;
+
 /**
  *
  * @author sgolegg
@@ -16,6 +18,7 @@ public abstract class Block{
     protected float y;
     public static float width;
     public static float height;
+    public Node node;
     
     public Block(float x, float y, int health, String name)
     {
