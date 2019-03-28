@@ -1,61 +1,66 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package mygame.blocks;
 
 import com.jme3.scene.Node;
+import mygame.Main;
 
 /**
- *
  * @author sgolegg
+ * 
+ * Name: Oliver Legg
+ * Student ID: 201244658
+ * 
  */
 public abstract class Block{
     protected String name;
-    protected int health;
     protected float x;
     protected float y;
-    public static float width;
-    public static float height;
+    private final int score;
+    public final static float WIDTH = Main.getWidth("brick1", 1);
+    public final static float HEIGHT = Main.getHeight("brick1", 1);
     public Node node;
     
-    public Block(float x, float y, int health, String name)
+    // Abstract class block made to store data for the different types of block
+    public Block(float x, float y, int score, String name)
     {
         this.name = name;
         this.x = x;
         this.y = y;
-        this.health = health;
+        this.score = score;
     }
     
-    public static void setDimensions(float w, float h)
-    {
-        width = w;
-        height = h;
-    }
-    
+    // Gets the width of the block
     public static float getWidth()
     {
-        return width;
+        return WIDTH;
     }
     
+    // Gets the height of the block
     public static float getHeight()
     {
-        return height;
+        return HEIGHT;
     }
     
+    // Gets the name of the block
     public String getName()
     {
         return name;
     }
     
+    // Gets the x coordinate
     public float getX()
     {
         return x;
     }
     
+    // Gets the y coordinate
     public float getY()
     {
         return y;
+    }
+    
+    // Gets the rewarded number of points for destroying the block
+    public float getScore()
+    {
+        return score;
     }
 }

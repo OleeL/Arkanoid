@@ -1,20 +1,18 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package mygame.blocks;
 
 /**
- *
  * @author sgolegg
+ * 
+ * Name: Oliver Legg
+ * Student ID: 201244658
+ * 
  */
 public class Brick5 extends Block {
     
     public Brick5(float x, float y)
     {
-        // x, y, health
-        super(x, y, 5, "brick5");
+        // x, y, health, score, name
+        super(x, y, 500, "brick5");
     }
             
 }
