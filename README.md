@@ -1,6 +1,7 @@
 # Arkanoid-Like game for COMP222 (JMonkeyEngine)
 
 * SFX
+* Music
 * Non engine physics
 * Custom Graphics
 
