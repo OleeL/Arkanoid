@@ -1,4 +1,4 @@
-# Arkanoid-Like game for COMP222 Built in JMonkeyEngine
+# Arkanoid-Like game for COMP222 (JMonkeyEngine)
 
 * SFX
 * Non engine physics
