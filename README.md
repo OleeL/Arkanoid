@@ -1,18 +1,9 @@
-# Arkanoid-Like game for COMP222 (JMonkeyEngine)
+# Arkanoid-Like game (JMonkeyEngine)
 
 * SFX
 * Music
 * Non engine physics
 * Custom Graphics
-
-This is the game as I submitted for a university assignment. There are other things that I would like to add such as:
-
-* Balancing ball speeds
-* Main Menu
-* Saved Scores
-* High Score List
-* Settings to change sfx (and perhaps limit framerate)
-* More levels
 
 The release of the game can be found [here](https://github.com/OleeL/Arkanoid-like-game-JMonkey-Engine/releases)
 
