@@ -1,4 +1,4 @@
-# Arkanoid-Like game (JMonkeyEngine)
+# Arkanoid (JMonkeyEngine)
 
 * SFX
 * Music
